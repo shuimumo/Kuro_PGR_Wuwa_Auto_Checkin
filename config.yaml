@@ -1,0 +1,30 @@
+# ─── 库街区自动签到配置文件 ───
+
+# 调试模式（可选，默认 false）
+debug: false
+
+# 定时任务配置
+schedule:
+  time: "00:00"             # 每天运行时间
+  timezone: Asia/Shanghai   # 时区
+
+# 全局通知配置（可选，所有账号共用；每个账号也可单独配置覆盖）
+# 支持两种推送通道，可单独或同时使用：
+#   - Server酱3：server3_send_key  获取地址 https://sct.ftqq.com
+#   - Bark     ：bark_device_key    iOS 推送，自建服务可设 bark_server_url
+# notification:
+#   server3_send_key: ""
+#   bark_device_key: ""
+#   bark_server_url: "https://api.day.app"
+
+# 账号列表（支持多个 token）
+accounts:
+  - token: ""
+    name: "账号1"
+    # 该账号单独的通知配置（可选，覆盖全局）
+    # notification:
+    #   server3_send_key: ""
+    #   bark_device_key: ""
+
+  # - token: ""
+  #   name: "账号2"
