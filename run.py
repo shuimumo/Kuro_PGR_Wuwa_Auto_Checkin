@@ -57,8 +57,10 @@ def convert_schedule_time(time_str: str, source_tz: str) -> str:
         return time_str
 
 
-def run_all_accounts(config: AppConfig):
-    """遍历所有账号执行签到，全局通知汇总所有账号，单账号有独立通知配置的额外单独发送"""
+def run_all_accounts():
+    """遍历所有账号执行签到，全局通知汇总所有账号，单账号有独立通知配置的额外单独发送
+    每次执行都会重新读取 config.yaml，改配置无需重启服务。
+    """
     global _last_checkin_date
 
     today = date.today().isoformat()
@@ -66,6 +68,14 @@ def run_all_accounts(config: AppConfig):
         logger.info("今日已完成签到，跳过重复执行")
         return
     _last_checkin_date = today
+
+    # 每次执行都重新读配置，改 yaml 无需重启
+    try:
+        config = AppConfig.load()
+    except SettingsError as e:
+        logger.error("读取配置失败: {}", e)
+        _last_checkin_date = None  # 配置失败不锁，下次再试
+        return
 
     logger.info("========== 开始执行签到任务 ==========")
     account_results = []
@@ -125,6 +135,7 @@ def run_all_accounts(config: AppConfig):
 
 
 def main():
+    # 先读一次配置确保 yaml 没问题，顺便初始化日志
     try:
         config = AppConfig.load()
     except SettingsError as e:
@@ -133,14 +144,14 @@ def main():
 
     configure_logger(debug=config.debug, secrets=collect_secrets(config))
 
-    # 启动时立即执行一次
-    run_all_accounts(config)
+    # 启动时立即执行一次（内部会重读配置）
+    run_all_accounts()
 
-    # 设置每日定时任务
+    # 每次重新读配置，所以定时任务注册时不传 config
     local_time = convert_schedule_time(
         config.schedule.time, config.schedule.timezone
     )
-    schedule.every().day.at(local_time).do(run_all_accounts, config)
+    schedule.every().day.at(local_time).do(run_all_accounts)
 
     logger.info(
         "定时任务已设置: 每天 {} ({}) 执行签到，本地时间 {}",
@@ -148,6 +159,7 @@ def main():
         config.schedule.timezone,
         local_time,
     )
+    logger.info("配置热加载已启用，修改 config.yaml 即时生效，无需重启服务")
 
     try:
         while True:
